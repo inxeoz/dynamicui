@@ -1,121 +1,74 @@
-<!--<script lang="ts">-->
-<!--    function handleClick(e: MouseEvent) {-->
-
-<!--        //try recurivelly to get the innermost element div class name-->
-<!--        //means if i clicked to center it should print grandchild-->
-<!--        // if i clicked center but not grandchild then it should print child-->
-<!--        // ...-->
-
-<!--        if (e.target !== e.currentTarget) {-->
-<!--            console.log('Innermost clicked:', e.target);-->
-<!--            e.stopPropagation(); // Prevent parent handlers-->
-<!--            return;-->
-<!--        }-->
-<!--        console.log('Parent clicked');-->
-<!--    }-->
-<!--</script>-->
-
-<!--<div style=" width: 100vw; height: 100vh;" class="center">-->
-<!--    <div on:click={handleClick}-->
-<!--    class="parent center">-->
-
-<!--        <div class="child center" on:click={handleClick}>-->
-<!--            <div class="grandchild center" on:click={handleClick}>-->
-<!--            </div>-->
-<!--        </div>-->
-<!--    </div>-->
-<!--</div>-->
-
-
-<!--<style>-->
-<!--    .parent {-->
-<!--        height: 500px;-->
-<!--        width: 500px;-->
-<!--        background: #748da5;-->
-<!--    }-->
-<!--    .child {-->
-<!--        height: 200px;-->
-<!--        width: 200px;-->
-<!--        background: #0065af;-->
-<!--    }-->
-<!--    .grandchild {-->
-<!--        height: 50px;-->
-<!--        width: 50px;-->
-<!--        background: black;-->
-<!--    }-->
-
-
-<!--</style>-->
-
-
 <script lang="ts">
-    function getInnermostClass(e: MouseEvent): string | null {
-        const target = e.target as HTMLElement;
-        const currentTarget = e.currentTarget as HTMLElement;
+    import { selected_id } from "./store";
+    import Ublock from "./Ublock.svelte";
 
-        // Start from the clicked element
-        let element: HTMLElement | null = target;
+    // Track created blocks
+    const blocks = new Map<string, { element: HTMLElement; instance?: Ublock }>();
+    let mainDiv: HTMLDivElement;
 
-        console.log(element, currentTarget)
-        // Walk up the DOM tree until we reach the container
-        while (element && element !== currentTarget) {
+    function selectBlock(e: MouseEvent) {
+        const target = e.currentTarget as HTMLElement;
+        let div_id = target.id;
 
-            if (element.classList.contains('grandchild')) return 'grandchild';
-            if (element.classList.contains('child')) return 'child';
-            if (element.classList.contains('parent')) return 'parent';
-            element = element.parentElement;
+        if (!div_id) {
+            div_id = crypto.randomUUID();
+            target.id = div_id;
         }
 
-        return null;
+        if (div_id === $selected_id) {
+            selected_id.set('');
+            target.style.background = '#053284';
+        } else {
+            selected_id.set(div_id);
+            target.style.background = '#f25757';
+        }
     }
 
-    function handleClick(e: MouseEvent) {
-        const className = getInnermostClass(e);
-        console.log('Innermost class:', className);
-        e.stopPropagation();
+    function addBlock() {
+        const target = $selected_id ? document.getElementById($selected_id) : mainDiv;
+        if (!target) return;
+
+        const id = crypto.randomUUID();
+        const container = document.createElement('div');
+
+        // Mount new Ublock component
+        const instance = new Ublock({
+            target: container,
+            props: { selectBlock }
+        });
+
+        container.id = id;
+        container.style.background = '#e32b2b'
+        target.appendChild(container);
+        blocks.set(id, { element: container, instance });
     }
 </script>
 
-<div style="width: 100vw; height: 100vh;" class="center">
-    <div on:click={handleClick} class="parent center">
-
-        <div class="child center" on:click={handleClick}>
-            <div class="grandchild center" on:click={handleClick}>
-            </div>
-        </div>
-        <div class="child center" on:click={handleClick}>
-            <div class="grandchild center" on:click={handleClick}>
-            </div>
-        </div>
-        <div class="child center" on:click={handleClick}>
-            <div class="grandchild center" on:click={handleClick}>
-            </div>
-        </div>
+<div class="main" id="main" bind:this={mainDiv}>
+    <div class="toolbar center">
+        <button class="add_block" on:click={addBlock}>
+            Add Block
+        </button>
     </div>
+
+    <!-- Initial block -->
+    <Ublock {selectBlock} />
 </div>
 
 <style>
-    .parent {
-        height: 500px;
-        width: 500px;
-        background: #748da5;
+    .main {
+        width: 100vw;
+        height: 100vh;
+        background: #1b334a;
+        justify-content: space-around;
         display: flex;
-        flex-direction: row;
-        row-gap: 20px;
-    }
-    .child {
-        height: 200px;
-        width: 200px;
-        background: #0065af;
-    }
-    .grandchild {
-        height: 50px;
-        width: 50px;
-        background: black;
-    }
-    .center {
-        display: flex;
-        justify-content: center;
+        flex-direction: column;
         align-items: center;
+    }
+
+    .toolbar {
+        height: 100px;
+        width: 500px;
+        background: #3172b5;
     }
 </style>
